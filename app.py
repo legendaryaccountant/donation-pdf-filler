@@ -10,7 +10,6 @@ PDF_BASE64 = "JVBERi0xLjcNJeLjz9MNCjE1MDIgMCBvYmoNPDwvRmlsdGVyL0ZsYXRlRGVjb2RlL0
 
 @app.route("/fill-pdf", methods=["POST", "OPTIONS"])
 def fill_pdf():
-    # Handle CORS preflight
     if request.method == "OPTIONS":
         response = app.make_default_options_response()
         response.headers["Access-Control-Allow-Origin"] = "*"
@@ -34,13 +33,17 @@ def fill_pdf():
         pdf_bytes = base64.b64decode(PDF_BASE64)
         template  = io.BytesIO(pdf_bytes)
 
-        # Fill the form fields
+        # Fill using clone + auto_regenerate (handles comb fields like VIN correctly)
         reader = PdfReader(template)
         writer = PdfWriter()
-        writer.append(reader)
+        writer.clone_reader_document_root(reader)
 
         for i in range(len(writer.pages)):
-            writer.update_page_form_field_values(writer.pages[i], field_map)
+            writer.update_page_form_field_values(
+                writer.pages[i],
+                field_map,
+                auto_regenerate=True
+            )
 
         output = io.BytesIO()
         writer.write(output)
